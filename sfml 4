@@ -1,0 +1,146 @@
+void waitForPlayerInput(RenderWindow& window) {
+    while (true) {
+        Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == Event::Closed) {
+                window.close();
+                return;
+            }
+            if (event.type == Event::KeyPressed) {
+                return;
+            }
+        }
+    }
+}
+
+// Function to display the gameplay screen
+void GameScene(Event& event, RenderWindow& window, Font& font, Texture& bgTexture, Sprite& background) {
+
+    bool isCorrect = true;
+
+    while (window.pollEvent(event)) {
+        cout << currentWord << endl;
+        for (auto i : guessedLetters) {
+            cout << i;
+        }
+        cout << endl;
+        cout << "Poll" << endl;
+        cout << event.type << endl;
+        if (event.key.code >= 'A' && event.key.code <= 'Z') {
+            char guess = event.key.code;
+            processGuess(guess);
+        }
+        else if (event.key.code >= 'a' && event.key.code <= 'z') {
+            char guess = toupper((char)event.key.code);
+            processGuess(guess);
+        }
+
+    }
+
+    cout << guessedLetters.size() << endl;
+    cout << currentWord.size() << endl;
+    updateBackground(bgTexture, background, window);
+    window.draw(background);
+
+    for (size_t i = 0; i < players.size(); i++) {
+        Text playerDisplay(players[i].name + ": " + to_string(players[i].score), font, 28);
+        playerDisplay.setPosition(65, 85 + i * 30);
+
+        if (i == currentPlayerIndex) {
+            playerDisplay.setFillColor(Color::Red);
+        }
+        else {
+            playerDisplay.setFillColor(Color::Black);
+        }
+        window.draw(playerDisplay);
+    }
+
+    Text guessCountText("Wrong guesses: " + to_string(wrongGuesses), font, 28);
+    guessCountText.setPosition(65, 490);
+    guessCountText.setFillColor(Color::Blue);
+    window.draw(guessCountText);
+
+    Text highScoreText("High Score: " + highScore.name + " >> " + to_string(highScore.score), font, 30);
+    highScoreText.setPosition(65, 20); 
+    highScoreText.setFillColor(Color::Black);
+    window.draw(highScoreText);
+
+    string displayedWord;
+
+  
+    for (int i = 0; i < currentWord.size(); i++) {
+        displayedWord += guessedLetters[i];
+        displayedWord += ' ';
+    }
+
+    Text wordText("Word : " + displayedWord, font, 45);
+    wordText.setFillColor(Color::Black);
+    wordText.setPosition(65, 380);
+    window.draw(wordText);
+
+    cout << guessedLetters.size() << endl;
+    cout << currentWord.size() << endl;
+    for (int i = 0; i < currentWord.size(); i++) {
+        if (currentWord[i] != guessedLetters[i]) {
+            isCorrect = false;
+        }
+    }
+
+    if (wrongGuesses > 6) {
+        cout << "Lose" << endl;
+        checkAndUpdateHighScore(players[currentPlayerIndex], highScore);
+        window.clear();
+        gameState = GameState::LoseScreen; // à¹à¸à¹
+        window.draw(background);
+        Button tryAgainButton(800, 500, 150, 55, "Home", font);
+        tryAgainButton.draw(window);
+
+        float startY = 430;
+        for (size_t i = 0; i < players.size(); i++) {
+            Text yourscore("Your Score", font, 30);
+            yourscore.setFillColor(Color::Red);
+            yourscore.setPosition(65, 380);
+            Text playerDisplay(players[i].name + ": " + to_string(players[i].score), font, 28);
+            playerDisplay.setPosition(70, startY + i * 30);
+            playerDisplay.setFillColor(Color::Black);
+            window.draw(playerDisplay);
+            window.draw(yourscore);
+        }
+
+    }
+    else if (isCorrect) {
+        cout << "Win" << endl;
+        checkAndUpdateHighScore(players[currentPlayerIndex], highScore);
+        window.clear();
+        gameState = GameState::WinScreen; // à¸à¸à¸°
+        window.draw(background);
+        Button tryAgainButton(800, 500, 150, 55, "Home", font);
+        tryAgainButton.draw(window);
+
+    float startY = 430;
+        for (size_t i = 0; i < players.size(); i++) {
+            Text yourscore("Your Score", font, 30);
+            yourscore.setFillColor(Color::Red);
+            yourscore.setPosition(65, 380);
+            Text playerDisplay(players[i].name + ": " + to_string(players[i].score), font, 28);
+            playerDisplay.setPosition(70, startY + i * 30);
+            playerDisplay.setFillColor(Color::Black);
+            window.draw(playerDisplay);
+            window.draw(yourscore);
+        }
+    }
+
+    if (Mouse::isButtonPressed(Mouse::Left)) {
+        Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
+
+  
+     if (gameState == GameState::LoseScreen || gameState == GameState::WinScreen) {
+            Button tryAgainButton(800, 500, 150, 55, "Home", font);
+            if (tryAgainButton.isClicked(mousePos)) {
+                gameState = GameState::MainMenu;
+                updateBackground(bgTexture, background, window);
+
+            }
+        }
+    }
+}
