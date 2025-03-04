@@ -1,0 +1,152 @@
+#include <SFML/Graphics.hpp>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <ctime>
+#include <algorithm>
+#include <sstream>
+
+
+using namespace sf;
+using namespace std;
+
+// Enum for Game States
+enum class GameState { MainMenu, CategorySelectMenu, DifficultySelectMenu, ReadyConfirmMenu, PlayerSettingMenu, GamePlay, WinScreen, LoseScreen };
+
+int state = 0;
+
+GameState gameState = GameState::MainMenu;
+
+// Store category and difficulty
+string selectedCategory;
+string selectedDifficulty;
+vector<string> words;
+
+
+
+// Player structure to hold player information
+struct Player {
+    string name;
+    int score = 0;
+};
+
+struct HighScore {
+    string name;
+    int score = 0;
+};
+// UI Button Class
+class Button {
+public:
+    RectangleShape shape;
+    Text text;
+
+    Button(float x, float y, float width, float height, const string& buttonText, Font& font) {
+        shape.setSize(Vector2f(width, height));
+        shape.setPosition(x, y);
+        shape.setFillColor(Color::White);
+        shape.setOutlineColor(Color::Black);
+        shape.setOutlineThickness(2);
+
+        text.setFont(font);
+        text.setString(buttonText);
+        text.setCharacterSize(24);
+        text.setFillColor(Color::Black);
+
+        // Center the text
+        FloatRect textBounds = text.getLocalBounds();
+        text.setOrigin(textBounds.left + textBounds.width / 2, textBounds.top + textBounds.height / 2);
+        text.setPosition(x + width / 2, y + height / 2);
+    }
+
+    void draw(RenderWindow& window) {
+        window.draw(shape);
+        window.draw(text);
+    }
+
+    bool isClicked(Vector2f mousePos) {
+        cout << "----" << "----" << endl;
+        cout << mousePos.x << ", " << mousePos.y << endl;
+        cout << shape.getGlobalBounds().getPosition().x << ", " << shape.getGlobalBounds().getPosition().y << endl;
+        return shape.getGlobalBounds().contains(mousePos);
+    }
+};
+
+
+vector<Player> players;
+int numPlayers = 0;          // Number of players
+int currentPlayerIndex = 0;  // Index of the current player
+string inputText;            // Input from the keyboard
+bool enteringPlayerCount = true;  // Currently entering the number of players
+bool enteringPlayerNames = false; // Currently entering player names
+bool waitingToStart = false;      // Waiting for enter to start the game
+bool gameStarted = false;
+
+// Game state variables
+string currentWord;
+vector<char> guessedLetters;
+int wrongGuesses = 0;
+Texture hangmanTextures[7]; // Array for hangman images
+Sprite hangmanSprite;
+
+
+
+// Function to update background texture based on game state
+void updateBackground(Texture& bgTexture, Sprite& background, RenderWindow& window) {
+    string bgFilename;
+
+    switch (gameState) {
+    case GameState::MainMenu: bgFilename = "background1.jpg"; break;
+    case GameState::CategorySelectMenu: bgFilename = "background2.jpg"; break;
+    case GameState::DifficultySelectMenu: bgFilename = "background3.jpg"; break;
+    case GameState::ReadyConfirmMenu: bgFilename = "background4.jpg"; break;
+    case GameState::PlayerSettingMenu: bgFilename = "background5.jpg"; break;
+    case GameState::GamePlay: bgFilename = "hangman" + to_string(wrongGuesses) + ".jpg"; break; // Set the initial hangman image
+    case GameState::WinScreen: bgFilename = "background6.jpg"; break;
+    case GameState::LoseScreen: bgFilename = "background7.jpg"; break;
+    }
+
+    cout << bgFilename << endl;
+
+    if (!bgTexture.loadFromFile(bgFilename)) {
+        cerr << "Error loading background: " << bgFilename << endl;
+    }
+    else {
+        background.setTexture(bgTexture);
+        Vector2u textureSize = bgTexture.getSize();
+        Vector2u windowSize = window.getSize();
+        float scaleX = static_cast<float>(windowSize.x) / textureSize.x;
+        float scaleY = static_cast<float>(windowSize.y) / textureSize.y;
+        background.setScale(scaleX, scaleY);
+    }
+}
+
+// Function to load words from file
+void loadWordsFromFile() {
+    words.clear();
+    string filename = selectedCategory + selectedDifficulty + ".txt";
+    cout << filename << endl;
+    ifstream file(filename);
+    if (!file) {
+        cerr << "Error loading file: " << filename << endl;
+        return;
+    }
+    cout << words.empty();
+
+    string word;
+    while (getline(file, word)) {
+        cout << word << endl;
+        // à¸¥à¸à¸à¹à¸­à¸à¸§à¹à¸²à¸à¸à¸µà¹à¹à¸«à¸¥à¸·à¸­à¸­à¸­à¸à¸à¸²à¸à¸à¸³
+        word.erase(remove_if(word.begin(), word.end(), ::isspace), word.end());
+        if (!word.empty()) { // à¸à¸£à¸§à¸à¸ªà¸­à¸à¸§à¹à¸²à¹à¸¡à¹à¹à¸à¹à¸à¸à¸³à¹à¸à¸¥à¹à¸²
+            words.push_back(word);  // à¹à¸à¸´à¹à¸¡à¸à¸³à¹à¸à¹à¸²à¹à¸à¹à¸ vector
+        }
+    }
+    file.close();
+
+    // à¸à¸²à¸£à¸à¸£à¸§à¸à¸ªà¸­à¸à¸§à¹à¸²à¸¡à¸µà¸à¸³à¹à¸à¹ à¸«à¸£à¸·à¸­à¹à¸¡à¹
+    if (words.empty()) {
+        std::cout << "Error: No words loaded from the file!" << std::endl;
+    }
+
+
+}
