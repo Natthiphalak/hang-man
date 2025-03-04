@@ -1,0 +1,136 @@
+void CategoryMenu(Event& event, RenderWindow& window, Font& font, Texture& bgTexture, Sprite& background) {
+    vector<Button> categoryButtons = {
+        Button(230, 180, 200, 60, "Animal", font),
+        Button(550, 180, 200, 60, "Things", font),
+        Button(230, 300, 200, 60, "Career", font),
+        Button(550, 300, 200, 60, "Country", font),
+        Button(390, 420, 200, 60, "Faculty", font)
+    };
+    Button backButtonFrom2(50, 500, 100, 50, "Back", font);
+    window.draw(background);
+    for (auto& btn : categoryButtons) btn.draw(window);
+    backButtonFrom2.draw(window);
+
+    if (Mouse::isButtonPressed(sf::Mouse::Left)) {
+        while (Mouse::isButtonPressed(sf::Mouse::Left)) {}
+        Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
+        if (gameState == GameState::CategorySelectMenu) {
+
+            for (auto& btn : categoryButtons) {
+                if (btn.isClicked(mousePos)) {
+                    selectedCategory = btn.text.getString();
+                    gameState = GameState::DifficultySelectMenu;
+                    updateBackground(bgTexture, background, window);
+                }
+            }
+            if (backButtonFrom2.isClicked(mousePos)) {
+                gameState = GameState::MainMenu;
+                updateBackground(bgTexture, background, window);
+            }
+        }
+
+    }
+    cout << "Category" << endl;
+
+}
+
+void loadHangmanImages() {
+    for (int i = 0; i < 7; i++) {
+        string filename = "hangman" + to_string(i) + ".jpg";
+        if (!hangmanTextures[i].loadFromFile(filename)) {
+            cerr << "Error loading hangman image: " << filename << endl;
+            }
+       }
+  }
+            
+void processGuess(char guess) {
+    cout << "Process Guess" << endl;
+    if (players.empty()) return;
+    int index = guessedLetters.size();
+    bool anyCorrect = false;
+    for (int i = 0; i < currentWord.size(); i++) {
+        if (guess == toupper(currentWord[i])) {
+            guessedLetters[i] = currentWord[i];
+            anyCorrect = true;
+        }
+    }
+
+    if (anyCorrect) {
+        players[currentPlayerIndex].score += 10;
+    }
+    else {
+        wrongGuesses++;
+        if (wrongGuesses < 7) {
+            hangmanSprite.setTexture(hangmanTextures[wrongGuesses]);
+        }
+    }
+
+}
+
+void drawPlayerInput(RenderWindow& window, Font& font) {
+    if (gameState == GameState::PlayerSettingMenu) {
+        if (enteringPlayerCount) {
+            Text playerCountText("Enter number of players (max 4 people): ", font, 40);
+            playerCountText.setPosition(100, 250);
+            playerCountText.setFillColor(Color::Black);
+            window.draw(playerCountText);
+        }
+        else if (enteringPlayerNames) {
+            string prompt = "Enter name for Player " + to_string(currentPlayerIndex + 1) + ": " + inputText;
+            Text playerNameText(prompt, font, 40);
+            playerNameText.setPosition(100, 300);
+            playerNameText.setFillColor(Color::Black);
+            window.draw(playerNameText);
+        }
+        else if (waitingToStart) {
+            Text startText("Press ENTER to start the game", font, 40);
+            startText.setPosition(100, 350);
+            startText.setFillColor(Color::Black);
+            window.draw(startText);
+            loadWordsFromFile();
+        }
+    }
+
+}
+
+int main() {
+    RenderWindow window(VideoMode(1000, 600), "Hangman SFML");
+
+    Font font;
+    if (!font.loadFromFile("arial.ttf")) {
+        cerr << "Error loading font!" << endl;
+        return -1;
+    }
+    highScore = loadHighScore("highscore.txt");
+
+    loadHangmanImages();
+
+    Texture bgTexture;
+    Sprite background;
+    updateBackground(bgTexture, background, window);
+
+    while (window.isOpen()) {
+
+        Event event;
+        window.pollEvent(event);
+
+        if (event.type == Event::Closed) window.close();
+
+        window.clear();
+        if (gameState == GameState::MainMenu) MainMenu(event, window, font, bgTexture, background);
+        else if (gameState == GameState::CategorySelectMenu) CategoryMenu(event, window, font, bgTexture, background);
+        else if (gameState == GameState::DifficultySelectMenu) DifficultMenu(event, window, font, bgTexture, background);
+        else if (gameState == GameState::ReadyConfirmMenu) ReadyConfirmMenu(event, window, font, bgTexture, background);
+        else if (gameState == GameState::PlayerSettingMenu) PlayerSettingMenu(event, window, font, bgTexture, background);
+        else if (gameState == GameState::GamePlay) GameScene(event, window, font, bgTexture, background);// Draw gameplay screen
+        else if (gameState == GameState::WinScreen) GameScene(event, window, font, bgTexture, background);
+        else if (gameState == GameState::LoseScreen) GameScene(event, window, font, bgTexture, background);
+
+        if (gameState == GameState::GamePlay) {
+            cout << "word is " << currentWord << endl;
+        }
+
+        window.display();
+    }
+    return 0;
+}
