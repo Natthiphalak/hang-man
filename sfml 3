@@ -1,0 +1,160 @@
+void DifficultMenu(Event& event, RenderWindow& window, Font& font, Texture& bgTexture, Sprite& background) {
+    Button easyButton(390, 200, 220, 65, "Easy", font);
+    Button hardButton(390, 340, 220, 65, "Hard", font);
+    Button backButtonFrom3(50, 500, 100, 50, "Back", font);
+
+    window.draw(background);
+    backButtonFrom3.draw(window);
+    easyButton.draw(window);
+    hardButton.draw(window);
+
+    if (Mouse::isButtonPressed(sf::Mouse::Left)) {
+        while (Mouse::isButtonPressed(sf::Mouse::Left)) {}
+        Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
+
+        if (easyButton.isClicked(mousePos)) {
+            selectedDifficulty = "_e";
+            gameState = GameState::ReadyConfirmMenu;
+            updateBackground(bgTexture, background, window);
+        }
+        else if (hardButton.isClicked(mousePos)) {
+            selectedDifficulty = "_h";
+            gameState = GameState::ReadyConfirmMenu;
+            updateBackground(bgTexture, background, window);
+        }
+        if (backButtonFrom3.isClicked(mousePos)) {
+            gameState = GameState::CategorySelectMenu;
+            updateBackground(bgTexture, background, window);
+        }
+    }
+    cout << "Difficult" << endl;
+}
+
+void ReadyConfirmMenu(Event& event, RenderWindow& window, Font& font, Texture& bgTexture, Sprite& background) {
+    Button yesButton(310, 420, 100, 60, "Yes", font);
+    Button noButton(580, 420, 100, 60, "No", font);
+
+    window.draw(background);
+    yesButton.draw(window);
+    noButton.draw(window);
+
+    if (Mouse::isButtonPressed(sf::Mouse::Left)) {
+        while (Mouse::isButtonPressed(sf::Mouse::Left)) {}
+        Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
+
+        if (yesButton.isClicked(mousePos)) {
+            gameState = GameState::PlayerSettingMenu;
+            updateBackground(bgTexture, background, window);
+        }
+        else if (noButton.isClicked(mousePos)) {
+            gameState = GameState::DifficultySelectMenu;
+            updateBackground(bgTexture, background, window);
+        }
+
+    }
+    cout << "ReadyConfirm" << endl;
+}
+
+void PlayerSettingMenu(Event& event, RenderWindow& window, Font& font, Texture& bgTexture, Sprite& background) {
+    window.draw(background);
+    while (window.pollEvent(event)) {
+        if (event.type == Event::KeyPressed) {
+
+            if (waitingToStart && event.key.code == Keyboard::Enter) {
+                loadWordsFromFile();
+                gameState = GameState::GamePlay;
+                /*if (!words.empty()) {
+                    startGame();
+                }*/
+                updateBackground(bgTexture, background, window);
+                currentPlayerIndex = 0;
+            }
+        }
+
+        if (enteringPlayerCount) {
+            cout << "Enter player count" << endl;
+            if (event.type == Event::TextEntered) {
+                if (event.text.unicode >= '1' && event.text.unicode <= '4') {
+                    numPlayers = event.text.unicode - '0';
+                    enteringPlayerCount = false;
+                    enteringPlayerNames = true;
+                    currentPlayerIndex = 0;
+                    players.clear();
+                }
+            }
+        }
+        else if (enteringPlayerNames) {
+            cout << "Enter player name" << endl;
+            if (event.text.unicode == '\b' && !inputText.empty()) {
+                inputText.pop_back();
+            }
+            else if (event.text.unicode >= 32 && event.text.unicode <= 126) {
+                inputText += static_cast<char>(event.text.unicode);
+            }
+            if (Keyboard::isKeyPressed(Keyboard::Enter)) {
+                cout << "Enter Place" << endl;
+                if (!inputText.empty()) {
+                    players.push_back({ inputText, 0 });
+                    inputText.clear();
+                    currentPlayerIndex++;
+                    if (currentPlayerIndex >= numPlayers) {
+                        enteringPlayerNames = false;
+                        waitingToStart = true;
+                    }
+                }
+            }
+
+        }
+        else if (waitingToStart) {
+            cout << "waiting to start" << endl;
+            if (Keyboard::isKeyPressed(Keyboard::Enter)) {
+                waitingToStart = false;
+                gameStarted = true;
+                gameState = GameState::GamePlay;
+                loadWordsFromFile();
+                currentPlayerIndex = 0;
+
+               
+                if (!words.empty()) {
+                    srand(static_cast<unsigned int>(time(0)));
+                    int randomIndex = rand() % words.size();
+                    currentWord = words[randomIndex]; 
+                    words.pop_back(); 
+                    guessedLetters.clear();
+                    for (int i = 0; i < currentWord.size(); i++) {
+                        guessedLetters.push_back('_');
+                    }
+                    wrongGuesses = 0;
+                    hangmanSprite.setTexture(hangmanTextures[wrongGuesses]); 
+                }
+                else {
+                    std::cout << "Error: No words available for gameplay!" << std::endl;
+                }
+            }
+        }
+    }
+
+    if (enteringPlayerCount) {
+        Text playerCountText("Enter number of players [ max 4 people ] : ", font, 35);
+        playerCountText.setPosition(100, 260);
+        playerCountText.setFillColor(Color::Black);
+        window.draw(playerCountText);
+    }
+    else if (enteringPlayerNames) {
+        string prompt = "Enter name for Player " + to_string(currentPlayerIndex + 1) + ": " + inputText;
+        Text playerNameText(prompt, font, 35);
+        playerNameText.setPosition(100, 260);
+        playerNameText.setFillColor(Color::Black);
+        window.draw(playerNameText);
+    }
+    else if (waitingToStart) {
+        Text startText("Press ENTER to start the game", font, 50);
+        startText.setPosition(145, 260);
+        startText.setFillColor(Color::Black);
+        window.draw(startText);
+    }
+
+    cout << "Setting" << endl;
+
+
+}
