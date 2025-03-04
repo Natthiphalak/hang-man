@@ -1,0 +1,142 @@
+HighScore highScore;
+
+// Load high score from file
+HighScore loadHighScore(const string& filename) {
+    ifstream file(filename);
+    HighScore hs;
+    if (file) {
+        file >> hs.name >> hs.score;
+    }
+    file.close();
+    return hs;
+}
+
+// Save high score to file
+void saveHighScore(const HighScore& hs, const string& filename) {
+    ofstream file(filename);
+    if (file) {
+        file << hs.name << " " << hs.score;
+    }
+    file.close();
+}
+
+// Function to check and update high score
+void checkAndUpdateHighScore(Player& currentPlayer, HighScore& highScore) {
+
+    if (currentPlayer.score > highScore.score ||
+        (currentPlayer.score == highScore.score && currentPlayer.name != highScore.name)) {
+
+        highScore.name = currentPlayer.name; 
+        highScore.score = currentPlayer.score;
+        saveHighScore(highScore, "highscore.txt");
+    }
+}
+
+void startGame() {
+    if (!words.empty()) {
+        srand(static_cast<unsigned int>(time(0)));
+        int randomIndex = rand() % words.size();
+        currentWord = words[randomIndex];
+        guessedLetters.clear();
+        for (int i = 0; i < currentWord.size(); i++) {
+            guessedLetters.push_back('_');
+        }
+        wrongGuesses = 0;
+
+        hangmanSprite.setTexture(hangmanTextures[wrongGuesses]);
+       
+    }
+    else {
+        std::cout << "Error: No words available for gameplay!" << std::endl;
+    
+    }
+}
+
+// Function to process player input
+void processPlayerInput(Event event) {
+    if (event.type == Event::TextEntered) {
+        // Check the status of the input
+        if (gameState == GameState::PlayerSettingMenu && enteringPlayerCount) {
+            if (event.text.unicode >= '1' && event.text.unicode <= '4') {
+                numPlayers = event.text.unicode - '0';
+                enteringPlayerCount = false;
+                enteringPlayerNames = true;
+                currentPlayerIndex = 0;
+                players.clear();
+            }
+        }
+        else if (enteringPlayerNames) {
+            // Check for player names
+            if (event.text.unicode == '\b' && !inputText.empty()) {
+                inputText.pop_back();
+            }
+            else if (event.text.unicode >= 32 && event.text.unicode <= 126) {
+                inputText += static_cast<char>(event.text.unicode);
+            }
+        }
+    }
+    else if (event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) {
+        if (gameState == GameState::PlayerSettingMenu) {
+            if (enteringPlayerNames) {
+                if (!inputText.empty()) {
+                    players.push_back({ inputText, 0 });
+                    inputText.clear();
+                    currentPlayerIndex++;
+                    if (currentPlayerIndex >= numPlayers) {
+                        enteringPlayerNames = false;
+                        waitingToStart = true;
+                    }
+                }
+            }
+            else if (waitingToStart) {
+                waitingToStart = false;
+                gameStarted = true;
+                gameState = GameState::GamePlay;
+
+                loadWordsFromFile();
+      
+                if (!words.empty()) {
+                    startGame();
+                    words.pop_back();
+                    guessedLetters.clear();
+                    for (int i = 0; i < currentWord.size(); i++) {
+                        guessedLetters.push_back('_');
+                    }
+                    wrongGuesses = 0;
+                    hangmanSprite.setTexture(hangmanTextures[wrongGuesses]);
+                }
+                else {
+                    std::cout << "Error: No words available for gameplay!" << std::endl;
+                }
+            }
+        }
+    }
+}
+
+void resetHighScore() {
+    highScore.name = "None";
+    highScore.score = 0;
+
+    saveHighScore(highScore, "highscore.txt");
+    cout << "High Score reset successfully!" << endl;
+}
+
+void MainMenu(Event& event, RenderWindow& window, Font& font, Texture& bgTexture, Sprite& background) {
+    Button resetButton(232, 385, 220, 60, "Reset High Score", font);
+    Button startButton(220, 285, 240, 72, "Start", font);
+    if (Mouse::isButtonPressed(sf::Mouse::Left)) {
+        while (Mouse::isButtonPressed(sf::Mouse::Left)) {}
+        Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
+        if (gameState == GameState::MainMenu && startButton.isClicked(mousePos)) {
+            gameState = GameState::CategorySelectMenu;
+            updateBackground(bgTexture, background, window);
+        }
+        if (gameState == GameState::MainMenu && resetButton.isClicked(mousePos)) {
+            resetHighScore();
+        }
+    }
+    cout << "Main" << endl;
+    window.draw(background);
+    startButton.draw(window);
+    resetButton.draw(window);
+}
